@@ -394,10 +394,10 @@ test( "filter and translate", function() {
     var subscriber1, subscriber2, subscriber3;
     var countV1 = 0, countV2 = 0;
 
-    function callbackV1(channel, message ) {
+    function callbackV1( channel, message ) {
         countV1++;
     }
-    function callbackV2(channel, message ) {
+    function callbackV2( channel, message ) {
         countV2++;
         var name = message.body.firstname + " " + message.body.lastname;
         var translatedMessage = $.hub.message( { name: name }, { formatVersion: "1" } );
@@ -411,6 +411,54 @@ test( "filter and translate", function() {
 
     equal( countV1, 1 );
     equal( countV2, 1 );
+
+    $.hub.unsubscribe( subscriber1 );
+    $.hub.unsubscribe( subscriber2 );
+});
+
+module( "Idempotent Receiver" );
+
+test( "only receive same message once", function() {
+    var m1 = $.hub.message({}),
+        m2 = $.hub.message({}),
+        channel = "idempotent";
+    var subscriber1, subscriber2;
+    var count1 = 0, count2 = 0;
+
+    function callback1( channel, message ) {
+        count1++;
+    }
+    function callback2( channel, message ) {
+        count2++;
+    }
+    function createIdempotentFilter() {
+        var messageIds = {};
+        var filter = function( channel, message ) {
+            if ( message && message.messageId ) {
+                if ( messageIds[ message.messageId ]) {
+                    return false;
+                } else {
+                    messageIds[ message.messageId ] = message.timestamp;
+                }
+            }
+            
+            return true;
+        };
+        
+        return filter;
+    }
+
+    subscriber1 = $.hub.subscribe( channel, callback1, null, null, createIdempotentFilter() );
+    subscriber2 = $.hub.subscribe( channel, callback2, null, null, createIdempotentFilter() );
+
+    $.hub.publish( channel, m1 );
+    $.hub.publish( channel, m1 );
+    $.hub.publish( channel, m2 );
+    $.hub.publish( channel, m2 );
+    $.hub.publish( channel, m2 );
+
+    equal( count1, 2 );
+    equal( count2, 2 );
 
     $.hub.unsubscribe( subscriber1 );
     $.hub.unsubscribe( subscriber2 );

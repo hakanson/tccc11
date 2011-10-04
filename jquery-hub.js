@@ -89,14 +89,16 @@
     };
 
     $.hub.createVersionFilter = function( version ) {
-        var version = /(\d+)\.?(\d+)?\.?(\d+)?/.exec( version ),
-            major = parseInt( version[ 1 ] ) || 0,
-            minor = parseInt( version[ 2 ] ) || 0;
+        var major, minor; 
+        
+        version = /(\d+)\.?(\d+)?\.?(\d+)?/.exec( version );
+        major = parseInt( version[ 1 ] ) || 0;
+        minor = parseInt( version[ 2 ] ) || 0;
 
         var filter = function( channel, message ) {
             var messageVersion = /(\d+)\.?(\d+)?\.?(\d+)?/.exec( ( message ? message.formatVersion : "" ) ),
-                messageMajor = parseInt( messageVersion[ 1 ] ) || 0,
-                messageMinor = parseInt( messageVersion[ 2 ] ) || 0;
+                messageMajor = parseInt( messageVersion[ 1 ], 10 ) || 0,
+                messageMinor = parseInt( messageVersion[ 2 ], 10 ) || 0;
             return ( major === messageMajor && ( minor ? minor === messageMinor : true ) );
         };
 
