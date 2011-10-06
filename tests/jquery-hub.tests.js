@@ -455,14 +455,25 @@ test( "only receive same message once", function() {
     subscriber1 = $.hub.subscribe( channel, callback1, null, null, createIdempotentFilter() );
     subscriber2 = $.hub.subscribe( channel, callback2, null, null, createIdempotentFilter() );
 
+    // should only get one of these
     $.hub.publish( channel, m1 );
     $.hub.publish( channel, m1 );
+
+    // should only get one of these
     $.hub.publish( channel, m2 );
     $.hub.publish( channel, m2 );
     $.hub.publish( channel, m2 );
 
-    equal( count1, 2 );
-    equal( count2, 2 );
+    // should get both of these (no message id)
+    $.hub.publish( channel, null );
+    $.hub.publish( channel, null );
+
+    // should get both of these (no message id)
+    $.hub.publish( channel, {} );
+    $.hub.publish( channel, {} );
+
+    equal( count1, 6 );
+    equal( count2, 6 );
 
     $.hub.unsubscribe( subscriber1 );
     $.hub.unsubscribe( subscriber2 );
