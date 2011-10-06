@@ -92,8 +92,8 @@
         var major, minor; 
         
         version = /(\d+)\.?(\d+)?\.?(\d+)?/.exec( version );
-        major = parseInt( version[ 1 ] ) || 0;
-        minor = parseInt( version[ 2 ] ) || 0;
+        major = parseInt( version[ 1 ], 10 ) || 0;
+        minor = parseInt( version[ 2 ], 10 ) || 0;
 
         var filter = function( channel, message ) {
             var messageVersion = /(\d+)\.?(\d+)?\.?(\d+)?/.exec( ( message ? message.formatVersion : "" ) ),

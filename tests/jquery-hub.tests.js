@@ -75,7 +75,7 @@ test( "wildcard subscribers", function() {
 });
 
 test( "handle thrown exception", function() {
-    //$.hub({ debug: true });  //only enable if you want your javascript debugger to breakpoint
+    // $.hub({ debug: true });  //only enable if you want your javascript debugger to breakpoint
 
     var channel = "a",
         message = { "a": "a" },
@@ -182,7 +182,7 @@ test( "subscribe using message builder", function() {
     $.hub.publish( channel, message );
 
     equal( actualChannel, channel );
-    equal( actualChannel, channel );
+
     deepEqual( actualMessage.body, messageBody );
 
     $.hub.unsubscribe( subscription );
@@ -246,7 +246,7 @@ test( "subscribe using message builder requestReply", function() {
         $.hub.reply( message, replyMessage );
     });
 
-    $.hub.requestReply(channel, message, replyChannel, function( channel, message ) {
+    $.hub.requestReply( channel, message, replyChannel, function( channel, message ) {
         actualReplyChannel = channel;
         actualReplyMessage = message;
         correlationId = message.correlationId;
@@ -326,6 +326,10 @@ test( "filter", function() {
     $.hub.publish( "Person.Cool", m2 );
     $.hub.unsubscribe( subscriber1 );
 
+    equal( countV1, 1 );
+    equal( countV2, 1 );
+    equal( countBoth, 2 );
+    
     subscriber2 = $.hub.subscribe( "Person.*", callbackV1, null, null, $.hub.createVersionFilter( "1" ) );
     subscriber3 = $.hub.subscribe( "Person.*", callbackV2, null, null, $.hub.createVersionFilter( "2" ) );
 
@@ -367,7 +371,7 @@ test( "createVersionFilter", function() {
     is1 = filter1( "", message11 );
     is2 = filter2( "", message22 );
 
-    equal( is1, true, "1.1 is version 2" );
+    equal( is1, true, "1.1 is version 1" );
     equal( is2, true, "2.2 is version 2" );
 
     var is11 = filter11( "", message11 );
