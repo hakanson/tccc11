@@ -1,4 +1,4 @@
-/*global QUnit,test,module,equal,deepEqual*/
+/*global QUnit,test,module,ok,equal,deepEqual*/
 QUnit.testStart = function( name ) {
     $.hub._reset();
 };
@@ -77,7 +77,7 @@ test( "wildcard subscribers", function() {
 test( "handle thrown exception", function() {
     // $.hub({ debug: true });  //only enable if you want your javascript debugger to breakpoint
 
-    var channel = "a",
+    var channel = "exception",
         message = { "a": "a" },
         actualMessage,
         actualChannel;
@@ -99,14 +99,16 @@ test( "handle thrown exception", function() {
 module( "Durable Subscriber" );
 
 test( "subscribe will not get message", function() {
-    var channel = "a",
+    var channel = "durable",
         message = { "a": "a" },
         actualMessage,
         actualChannel;
 
+    // publish first
     $.hub.publish( channel, message );
 
-    var subscription = $.hub.subscribe(channel, function( channel, message ) {
+    // then subscribe
+    var subscription = $.hub.subscribe( channel, function( channel, message ) {
         actualChannel = channel;
         actualMessage = message;
     });
@@ -131,7 +133,8 @@ test( "create a hub that is not ready for publishing until triggered", function(
     // publish before any active subscribers
     $.hub.publish( channelA, messageA );
 
-    var subscriptionA = $.hub.subscribe(channelA, function( channel, message ) {
+    // then subscribe
+    var subscriptionA = $.hub.subscribe( channelA, function( channel, message ) {
         actualChannel = channel;
         actualMessage = message;
     });
@@ -147,7 +150,8 @@ test( "create a hub that is not ready for publishing until triggered", function(
     equal( actualChannel, channelA );
     deepEqual( actualMessage, messageB );
 
-    $.hub({ ready: false });  // suspend the hub after it already had been active
+    // suspend the hub after it already had been active
+    $.hub({ ready: false });  
 
     $.hub.publish( channelB, messageB );
 
@@ -168,7 +172,7 @@ test( "create a hub that is not ready for publishing until triggered", function(
 module( "Message" );
 
 test( "subscribe using message builder", function() {
-    var channel = "namea",
+    var channel = "builder",
         messageBody = { "key1": "value1", "key2": "value2" },
         actualMessage,
         actualChannel;
@@ -182,7 +186,6 @@ test( "subscribe using message builder", function() {
     $.hub.publish( channel, message );
 
     equal( actualChannel, channel );
-
     deepEqual( actualMessage.body, messageBody );
 
     $.hub.unsubscribe( subscription );
@@ -202,18 +205,21 @@ test( "subscribe using message builder with replyTo set", function() {
         actualReplyMessage,
         actualReplyChannel;
 
-    var subscription = $.hub.subscribe(channel, function( channel, message ) {
+    // listen for the request, then reply
+    var subscription = $.hub.subscribe( channel, function( channel, message ) {
         actualChannel = channel;
         actualMessage = message;
         $.hub.reply(message, replyMessage );
     });
 
-    var replySubscription = $.hub.subscribe(replyChannel, function( channel, message ) {
+    // listen for the reply
+    var replySubscription = $.hub.subscribe( replyChannel, function( channel, message ) {
         actualReplyChannel = channel;
         actualReplyMessage = message;
         correlationId = message.correlationId;
     });
 
+    // replyTo is the channel where replies are sent
     message.replyTo = replyChannel;
     $.hub.publish( channel, message );
 
@@ -228,63 +234,32 @@ test( "subscribe using message builder with replyTo set", function() {
     $.hub.unsubscribe( replySubscription );
 });
 
-test( "subscribe using message builder requestReply", function() {
+test( "subscribe using message builder with replyTo not set", function() {
     var channel = "a",
         replyChannel = "b",
         messageBody = { "a": "a" },
-        message = $.hub.message( messageBody ),
         replyMessage = $.hub.message({ "c": "c" }),
         correlationId,
         actualMessage,
         actualChannel,
-        actualReplyMessage,
-        actualReplyChannel;
+        actualReplyMessage = null,
+        actualReplyChannel = null;
 
+    // listen for the request, then reply
     var subscription = $.hub.subscribe(channel, function( channel, message ) {
         actualChannel = channel;
         actualMessage = message;
         $.hub.reply( message, replyMessage );
     });
 
-    $.hub.requestReply( channel, message, replyChannel, function( channel, message ) {
+    // replyTo is the channel where replies are sent
+    var replySubscription = $.hub.subscribe( replyChannel, function( channel, message ) {
         actualReplyChannel = channel;
         actualReplyMessage = message;
         correlationId = message.correlationId;
     });
 
-    equal( actualChannel, channel );
-    deepEqual( actualMessage.body, messageBody );
-
-    equal( actualReplyChannel, replyChannel );
-    equal( message.messageId, correlationId );
-    deepEqual( actualReplyMessage.body, replyMessage.body );
-
-    $.hub.unsubscribe( subscription);
-});
-
-test( "subscribe using message builder with replyTo not set", function() {
-    var channel = "a",
-        replyChannel = "b",
-        messageBody = { "a": "a" },
-        replyMessage = $.hub.message({ "c": "c" }),
-        actualMessage,
-        actualChannel,
-        actualReplyMessage = null,
-        actualReplyChannel = null;
-
-    $.hub.subscribe(channel, function( channel, message ) {
-        actualChannel = channel;
-        actualMessage = message;
-        $.hub.reply( message, replyMessage );
-    });
-
-    var correlationId = null;
-    $.hub.subscribe( replyChannel, function( channel, message ) {
-        actualReplyChannel = channel;
-        actualReplyMessage = message;
-        correlationId = message.correlationId;
-    });
-
+    // forget to set the replyTo
     var message = $.hub.message( messageBody );
     $.hub.publish( channel, message );
 
@@ -294,6 +269,41 @@ test( "subscribe using message builder with replyTo not set", function() {
     equal( actualReplyChannel, null );
     equal( correlationId, null );
     deepEqual( actualReplyMessage, null );
+
+    $.hub.unsubscribe( subscription );
+    $.hub.unsubscribe( replySubscription );
+} );
+
+test( "subscribe using message builder requestReply", function() {
+    var channel = "a",
+        replyChannel = "b",
+        messageBody = { "a": "a" },
+        message = $.hub.message( messageBody ),
+        replyMessage = $.hub.message({ "c": "c" }),
+        correlationId,
+        actualMessage,
+        actualChannel;
+
+    // listen for the request, then reply
+    var subscription = $.hub.subscribe(channel, function( channel, message ) {
+        actualChannel = channel;
+        actualMessage = message;
+        $.hub.reply( message, replyMessage );
+    });
+
+    // requestReply auto defines and subscribes to a replyChannel
+    $.hub.requestReply( channel, message, function( channel, message ) {
+        actualReplyMessage = message;
+        correlationId = message.correlationId;
+    });
+
+    equal( actualChannel, channel );
+    deepEqual( actualMessage.body, messageBody );
+
+    equal( message.messageId, correlationId );
+    deepEqual( actualReplyMessage.body, replyMessage.body );
+
+    $.hub.unsubscribe( subscription );
 });
 
 module( "Selective Consumer" );
@@ -326,10 +336,10 @@ test( "filter", function() {
     $.hub.publish( "Person.Cool", m2 );
     $.hub.unsubscribe( subscriber1 );
 
-    equal( countV1, 1 );
-    equal( countV2, 1 );
-    equal( countBoth, 2 );
-    
+    equal( countV1, 1, "callbackV1 called once" );
+    equal( countV2, 1, "callbackV2 called once" );
+    equal( countBoth, 2, "callbackBoth called twice" );
+
     subscriber2 = $.hub.subscribe( "Person.*", callbackV1, null, null, $.hub.createVersionFilter( "1" ) );
     subscriber3 = $.hub.subscribe( "Person.*", callbackV2, null, null, $.hub.createVersionFilter( "2" ) );
 
@@ -344,8 +354,9 @@ test( "filter", function() {
     $.hub.unsubscribe( subscriber3 );
 });
 
-test( "createVersionFilter", function() {
-    var filter1 = $.hub.createVersionFilter( "1" ),
+test( "createVersionFilter filters version strings", function() {
+    var channel = "createVersionFilter", 
+        filter1 = $.hub.createVersionFilter( "1" ),
         filter2 = $.hub.createVersionFilter( "2" ),
         filter11 = $.hub.createVersionFilter( "1.1" ),
         filter12 = $.hub.createVersionFilter( "1.2" ),
@@ -356,35 +367,37 @@ test( "createVersionFilter", function() {
         message12 = $.hub.message({}, { formatVersion: "1.2" }),
         message22 = $.hub.message({}, { formatVersion: "2.2" });
 
-    var is1 = filter1( "", message1 );
-    var is2 = filter2( "", message2 );
+    // {major} versions
+    var is1 = filter1( channel, message1 );
+    var is2 = filter2( channel, message2 );
 
-    equal( is1, true, "1 is version 1" );
-    equal( is2, true, "2 is version 2" );
+    ok( is1, "1 is version 1" );
+    ok( is2, "2 is version 2" );
 
-    is1 = filter1( "", message2 );
-    is2 = filter2( "", message1 );
+    is1 = filter1( channel, message2 );
+    is2 = filter2( channel, message1 );
 
     equal( is1, false, "2 is not version 1" );
     equal( is2, false, "1 is not version 2" );
 
-    is1 = filter1( "", message11 );
-    is2 = filter2( "", message22 );
+    // {major}.{minor} versions
+    is1 = filter1( channel, message11 );
+    is2 = filter2( channel, message22 );
 
-    equal( is1, true, "1.1 is version 1" );
-    equal( is2, true, "2.2 is version 2" );
+    ok( is1, "1.1 is version 1" );
+    ok( is2, "2.2 is version 2" );
 
-    var is11 = filter11( "", message11 );
-    var is12 = filter12( "", message12 );
-    var is22 = filter22( "", message22 );
+    var is11 = filter11( channel, message11 );
+    var is12 = filter12( channel, message12 );
+    var is22 = filter22( channel, message22 );
 
-    equal( is11, true, "1.1 is version 1.1" );
-    equal( is12, true, "1.2 is version 1.2" );
-    equal( is22, true, "2.2 is version 2.2" );
+    ok( is11, "1.1 is version 1.1" );
+    ok( is12, "1.2 is version 1.2" );
+    ok( is22, "2.2 is version 2.2" );
 
-    is11 = filter11( "", message1 );
-    is12 = filter12( "", message11 );
-    is22 = filter22( "", message2 );
+    is11 = filter11( channel, message1 );
+    is12 = filter12( channel, message11 );
+    is22 = filter22( channel, message2 );
 
     equal( is11, false, "1.1 is not version 1" );
     equal( is12, false, "1.2 is not version 1.1" );
@@ -435,25 +448,9 @@ test( "only receive same message once", function() {
     function callback2( channel, message ) {
         count2++;
     }
-    function createIdempotentFilter() {
-        var messageIds = {};
-        var filter = function( channel, message ) {
-            if ( message && message.messageId ) {
-                if ( messageIds[ message.messageId ]) {
-                    return false;
-                } else {
-                    messageIds[ message.messageId ] = message.timestamp;
-                }
-            }
-            
-            return true;
-        };
-        
-        return filter;
-    }
 
-    subscriber1 = $.hub.subscribe( channel, callback1, null, null, createIdempotentFilter() );
-    subscriber2 = $.hub.subscribe( channel, callback2, null, null, createIdempotentFilter() );
+    subscriber1 = $.hub.subscribe( channel, callback1, null, null, $.hub.createIdempotentFilter() );
+    subscriber2 = $.hub.subscribe( channel, callback2, null, null, $.hub.createIdempotentFilter() );
 
     // should only get one of these
     $.hub.publish( channel, m1 );
@@ -464,6 +461,9 @@ test( "only receive same message once", function() {
     $.hub.publish( channel, m2 );
     $.hub.publish( channel, m2 );
 
+    equal( count1, 2, "1 m1 + 1 m2" );
+    equal( count2, 2, "1 m1 + 1 m2" );
+
     // should get both of these (no message id)
     $.hub.publish( channel, null );
     $.hub.publish( channel, null );
@@ -472,8 +472,8 @@ test( "only receive same message once", function() {
     $.hub.publish( channel, {} );
     $.hub.publish( channel, {} );
 
-    equal( count1, 6 );
-    equal( count2, 6 );
+    equal( count1, 6, "2 previous + 2 null + 2 {}" );
+    equal( count2, 6, "2 previous + 2 null + 2 {}" );
 
     $.hub.unsubscribe( subscriber1 );
     $.hub.unsubscribe( subscriber2 );
@@ -482,7 +482,7 @@ test( "only receive same message once", function() {
 module( "Command Message" );
 
 test( "command message and message endpoint", function() {
-    var commandMessage = $.hub.message( {} ),
+    var commandMessage = $.hub.message({}),
         channel = "increment";
 
     var counter = ( function() {
@@ -502,7 +502,7 @@ test( "command message and message endpoint", function() {
     // construct a message endpoint to call counter.increment()
     var subscription = $.hub.subscribe( channel, function( channel, message ) {
         counter.increment( message );
-    } );
+    });
 
     counter.increment();
     $.hub.publish( channel, null );
@@ -515,7 +515,7 @@ test( "command message and message endpoint", function() {
     equal( counter.count(), 6, "counter.count will be incremented six times" );
 
     $.hub.unsubscribe( subscription );
-} );
+});
 
 test( "this and scope", function() {
     var m1 = $.hub.message( { name: "Kevin Hakanson" }, { formatVersion: "1" } );
@@ -564,4 +564,3 @@ test( "this and scope", function() {
     $.hub.unsubscribe( subscriber3 );
     $.hub.unsubscribe( subscriber4 );
 });
-
