@@ -562,7 +562,7 @@ test( "command message and message endpoint", function() {
         return obj;
     } )();
 
-    // construct a message endpoint to call counter.increment()
+    // create a message endpoint to call counter.increment()
     var subscription = $.hub.subscribe( channel, function( channel, message ) {
         counter.increment( message );
     });

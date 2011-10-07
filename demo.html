@@ -1,52 +1,21 @@
-﻿<!DOCTYPE HTML>
+<!DOCTYPE HTML>
 <html>
 <head>
     <title>Demo</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <style>
+        .widget { border: 2px solid; margin-bottom: 1em; padding: .5em; }
+        .active { color: green; }
+    </style>
     <script type="text/javascript">window.JSON || document.write( '<script src="json2.js"><\/script>' )</script>
     <script type="text/javascript" src="jquery-1.6.3.js"></script>
     <script type="text/javascript" src="OpenAjax.js"></script>
     <script type="text/javascript" src="jquery-hub.js"></script>
-    <script type="text/javascript">
-        $( document ).ready( function() {
-            var counter = 0;
-            function reset() {
-                $( "#name" ).val( "" ).focus();
-                $( "#key" ).val( "" );
-
-                $( "#save" ).prop( "disabled", true );
-                $( "#cancel" ).prop( "disabled", true );
-            }
-            $( "#name" ).change( function() {
-                $( "#save" ).prop( "disabled", !$( this ).val() );
-                $( "#cancel" ).prop( "disabled", !$( this ).val() );
-            } );
-            $( "#name" ).keyup( function() {
-                $( this ).change();
-            } );
-            $( "#save" ).click( function() {
-                if ( $( "#key" ).val() ) {
-                    $( "#" + $( "#key" ).val() ).text( $( "#name" ).val() );
-                } else {
-                    $( "#list ul" ).append( "<li id='key" + counter++ + "'>" + $( "#name" ).val() + "</li>" );
-                }
-
-                reset();
-            } );
-            $( "#cancel" ).click( function() {
-                reset();
-            } );
-
-            $( "#list ul li" ).live( "click", function() {
-                $( "#name" ).val( $( this ).text() ).change().focus();
-                $( "#key" ).val( $( this ).attr( "id" ) );
-            } );
-        } );
-    </script>
+    <script type="text/javascript" src="demo-updated.js"></script>
 </head>
 <body>
     <h1>Demo</h1>
-    <div id="edit" style="border: 1px solid;">
+    <div id="edit" class="widget">
         <h2>Edit Widget</h2>
         <label for="name">Name:</label>
         <input id="name" type="text" />
@@ -54,7 +23,7 @@
         <input id="cancel" type="button" value="cancel" disabled />
         <input id="key" type="hidden" />
     </div>
-    <div id="list" style="border: 1px solid; margin-top: 1em;">
+    <div id="list" class="widget">
         <h2>List Widget</h2>
         <ul>
         </ul>
