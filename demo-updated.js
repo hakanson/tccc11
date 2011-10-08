@@ -1,4 +1,4 @@
-// this code is intentionally tightly coupled across widgets
+// this code is loosely coupled across widgets using messaging
 
 // edit widget
 $( document ).ready( function() {
